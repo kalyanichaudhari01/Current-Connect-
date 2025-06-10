@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aggregatore di Notizie</title>
+
+   
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    />
+
+    <style>
+ 
+      body {
+        background-color: #f8f9fa;
+        padding-top: 40px;
+        padding-bottom: 80px; 
+      }
+      .container {
+        max-width: 1200px;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+    
+      #filterForm {
+        margin-bottom: 30px;
+      }
+      
+      #newsFeed {
+        margin-top: 20px;
+      }
+      .news-card {
+        margin-bottom: 30px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      .news-card img {
+        object-fit: cover;
+        width: 100%;
+        height: 200px;
+      }
+
+      footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #343a40;
+        color: #fff;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+     
+      <h1>Aggregatore di Notizie</h1>
+
+      <form id="filterForm" class="row g-3">
+        <div class="col-md-4">
+          <label for="categorySelect" class="form-label"
+            >Seleziona Categoria:</label
+          >
+        
+          <select id="categorySelect" class="form-select">
+            <option value="all">Tutte</option>
+            <option value="technology">Tecnologia</option>
+            <option value="sport">Sport</option>
+            <option value="politics">Politica</option>
+            <option value="film">Intrattenimento</option>
+          </select>
+        </div>
+        <div class="col-md-4 align-self-end">
+          <button type="submit" class="btn btn-primary">
+            Aggiorna Notizie
+          </button>
+        </div>
+      </form>
+
+   
+      <div id="newsFeed" class="row"></div>
+    </div>
+
+    
+    <footer>Aggregatore di Notizie - Bocaletto Luca</footer>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      const filterForm = document.getElementById("filterForm");
+      const categorySelect = document.getElementById("categorySelect");
+      const newsFeed = document.getElementById("newsFeed");
+
+      function buildApiUrl(category) {
+        const baseUrl = "https://content.guardianapis.com/search";
+        const apiKey = "test";
+        const additionalParams =
+          "&show-fields=thumbnail,trailText&page-size=12";
+
+        let sectionParam = "";
+        if (category !== "all") {
+          sectionParam = "&section=" + category;
+        }
+
+        return `${baseUrl}?api-key=${apiKey}${sectionParam}${additionalParams}`;
+      }
+
+      async function fetchNews(url) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error("Network response not OK: " + response.status);
+          }
+          const json = await response.json();
+          return json;
+        } catch (error) {
+          console.error("Error fetching news:", error);
+          return null;
+        }
+      }
+
+      function displayNews(data) {
+        newsFeed.innerHTML = "";
+
+        if (!data || !data.response || !data.response.results) {
+          newsFeed.innerHTML =
+            "<p class='text-center text-danger'>Nessun dato disponibile.</p>";
+          return;
+        }
+
+        const results = data.response.results;
+
+        results.forEach((article) => {
+          const colDiv = document.createElement("div");
+          colDiv.className = "col-12 col-md-6 col-lg-4";
+
+          const card = document.createElement("div");
+          card.className = "card news-card h-100";
+
+          if (article.fields && article.fields.thumbnail) {
+            const img = document.createElement("img");
+            img.src = article.fields.thumbnail;
+            img.alt = article.webTitle;
+            img.className = "card-img-top";
+            card.appendChild(img);
+          }
+
+          const cardBody = document.createElement("div");
+          cardBody.className = "card-body d-flex flex-column";
+
+          const title = document.createElement("h5");
+          title.className = "card-title";
+          title.textContent = article.webTitle;
+          cardBody.appendChild(title);
+
+          if (article.fields && article.fields.trailText) {
+            const trailText = document.createElement("p");
+            trailText.className = "card-text";
+            trailText.innerHTML = article.fields.trailText;
+            cardBody.appendChild(trailText);
+          }
+
+          const readMore = document.createElement("a");
+          readMore.className = "btn btn-sm btn-primary mt-auto";
+          readMore.href = article.webUrl;
+          readMore.target = "_blank";
+          readMore.textContent = "Leggi di più";
+          cardBody.appendChild(readMore);
+
+          card.appendChild(cardBody);
+          colDiv.appendChild(card);
+          newsFeed.appendChild(colDiv);
+        });
+      }
+
+      async function loadNews() {
+        const selectedCategory = categorySelect.value;
+        const url = buildApiUrl(selectedCategory);
+
+        newsFeed.innerHTML =
+          "<p class='text-center'>Caricamento notizie...</p>";
+
+        const data = await fetchNews(url);
+        if (data) {
+          displayNews(data);
+        } else {
+          newsFeed.innerHTML =
+            "<p class='text-center text-danger'>Errore nel caricamento delle notizie. Riprova più tardi.</p>";
+        }
+      }
+
+      filterForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        loadNews();
+      });
+
+      loadNews();
+    </script>
+  </body>
+</html>
